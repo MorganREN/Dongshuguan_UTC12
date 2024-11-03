@@ -52,7 +52,7 @@ def kline_simulation(
         symbol:str = "jj_code"
 ):
     
-    db = db.with_columns(pl.col('open_time').dt.date().alias('date'))
+    db = db.with_columns(pl.col(time).dt.date().alias('date'))
 
     # 转换成datetime.time对象
     start_time = convert_offset(offset)
