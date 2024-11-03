@@ -54,20 +54,35 @@ def kline_simulation(
     
     db = db.with_columns(pl.col(time).dt.date().alias('date'))
 
-    # 转换成datetime.time对象
+    # 转换成datetime.time对象并与start_date合并
     start_time = convert_offset(offset)
-    
-    # 默认是必然会输出5m的原始颗粒度数据 迭代回放频率是1d ｜ 获取的数据是从start_date+偏移量开始的
+    start_date_time = dt.datetime.combine(start_date, start_time)
+
+    # 默认是必然会输出5m的原始颗粒度数据 迭代回放频率是1d
     data = db.filter(
-        pl.col(time) >= pl.lit(dt.datetime.combine(start_date,start_time))
+        pl.col(time) >= pl.lit(start_date_time)
     )
+
+    # 对整个数据集进行分组降采样并保存
+    desampled_data = {}
+    for interval in sub_interval_list:
+        desampled_data[interval] = desample_kline(data,interval=interval, offset=offset)
+
     # 这里要给data一列可以用以迭代的东西 比如offset的date
     for date,kline in data.group_by("date",maintain_order=True):  #  修改内容：对'open_time'进行分组，不知道是否会有问题
         res = {
             "5m":kline
         }
 
+        # 生成每个子颗粒度的数据的时间范围
+        interval_start_date_time = dt.datetime.combine(date[0], start_time)
+        end_date_time = interval_start_date_time + dt.timedelta(days=1)
+
         for interval in sub_interval_list:
-            res[interval] = desample_kline(kline,interval=interval, offset=offset)
+            # 直接根据时间过滤
+            res[interval] = desampled_data[interval].filter(
+                pl.col(time) >= pl.lit(interval_start_date_time),
+                pl.col(time) < pl.lit(end_date_time)
+            )
 
         yield res
