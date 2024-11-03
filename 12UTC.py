@@ -3,8 +3,8 @@ import datetime as dt
 
 def kline_simulation(
         start_date:dt.date, # 指数据回放的起始日期
-        start_time:dt.time, # 新添加内容：指数据回放的起始时间
         db:pl.DataFrame, # 原始数据库
+        start_time:dt.time = dt.time(0,0,0), # 新添加内容：指数据回放的起始时间，默认为00:00:00
         sub_interval_list:list = ["1d"], # 需要聚合出哪些颗粒度的kline
         time:str = "close_time",
         symbol:str = "jj_code"
@@ -26,3 +26,4 @@ def kline_simulation(
         if "1h" in sub_interval_list:
             res["5m"] = None
         yield res
+
